@@ -1,0 +1,7 @@
+index/
+__pycache__/
+*.pyc
+data/
+data_norm/
+*.part
+*.src
