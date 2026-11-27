@@ -50,8 +50,10 @@ BODY = ParagraphStyle("body", parent=ss["Normal"], fontName="DV", fontSize=9.2, 
                       alignment=TA_LEFT, spaceAfter=5)
 SMALL = ParagraphStyle("small", parent=BODY, fontSize=7.8, leading=10.5, textColor=colors.HexColor("#444444"))
 H1 = ParagraphStyle("h1", parent=BODY, fontName="DV-B", fontSize=15, leading=19, spaceBefore=6, spaceAfter=8)
-H2 = ParagraphStyle("h2", parent=BODY, fontName="DV-B", fontSize=11.5, leading=15, spaceBefore=10, spaceAfter=5)
-H3 = ParagraphStyle("h3", parent=BODY, fontName="DV-B", fontSize=9.8, leading=13, spaceBefore=6, spaceAfter=3)
+H2 = ParagraphStyle("h2", parent=BODY, fontName="DV-B", fontSize=11.5, leading=15, spaceBefore=10, spaceAfter=5,
+                    keepWithNext=1)
+H3 = ParagraphStyle("h3", parent=BODY, fontName="DV-B", fontSize=9.8, leading=13, spaceBefore=6, spaceAfter=3,
+                    keepWithNext=1)
 TITLE = ParagraphStyle("title", parent=BODY, fontName="DV-B", fontSize=20, leading=25, spaceAfter=4)
 BUL = ParagraphStyle("bul", parent=BODY, leftIndent=11, bulletIndent=2, spaceAfter=3)
 CELL = ParagraphStyle("cell", parent=BODY, fontSize=7.8, leading=10, spaceAfter=0)
