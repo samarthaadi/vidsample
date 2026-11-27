@@ -286,7 +286,7 @@ def build(exp, out_pdf):
            f"{L[d]['real']:,} real / {L[d]['fake']:,} fake" if L[d]["real"] + L[d]["fake"] else "none",
            f"{L[d]['stream_gb']:.1f} GB" if L[d]["stream_gb"] else "–", f"{L[d]['total_gb']:.0f} GB"]
           for d in DS],
-    ], [25, 40, 33, 35, 21, 18]))
+    ], [28, 37, 32, 33, 24, 18]))
     story.append(P(
         "Archive kinds: zip and rar (non-solid RAR5) and 7z (Copy coder) are random access; tar_stream and "
         "rar_in_7z_stream are read from the start. Counts are clips that pass the label/generator rules (video "
@@ -359,8 +359,8 @@ def build(exp, out_pdf):
         *[[NAME[d],
            f3(within(d, "meta_raw")) + (f" ({f3(within(d, 'meta_raw', 'ood'))})" if within(d, "meta_raw", "ood") is not None else ""),
            f3(within(d, "meta_norm")) + (f" ({f3(within(d, 'meta_norm', 'ood'))})" if within(d, "meta_norm", "ood") is not None else ""),
-           f"{single[f'{d}|raw'][0]:.3f} ({single[f'{d}|raw'][1]})",
-           f"{single[f'{d}|norm'][0]:.3f} ({single[f'{d}|norm'][1]})"] for d in DS],
+           f"{single[f'{d}|raw'][0]:.3f} ({single[f'{d}|raw'][1].replace('/', ' / ')})",
+           f"{single[f'{d}|norm'][0]:.3f} ({single[f'{d}|norm'][1].replace('/', ' / ')})"] for d in DS],
     ], [30, 30, 30, 41, 41]))
     story.append(P("Single-feature AUC is measured on the training set, as max(AUC, 1 − AUC) of one numeric "
                    "feature (file size, duration, fps, width, height, aspect, bitrate, bits per pixel, has-audio); "
