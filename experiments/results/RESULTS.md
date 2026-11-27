@@ -33,10 +33,10 @@ Cells are `test AUC / ood AUC`. Balanced accuracy at threshold 0.5:
 
 | dataset | raw | normalized |
 |---|---|---|
-| aigvdbench | 1.000 (width) | 0.650 (duration) |
-| genbuster200k | 0.650 (file_bytes) | 0.616 (file_bytes) |
-| genvidbench | 0.992 (width) | 0.662 (bits_per_pixel) |
-| genvideo100k | 0.973 (duration) | 0.606 (duration) |
+| aigvdbench | 1.000 (aspect/height/width) | 0.650 (duration) |
+| genbuster200k | 0.650 (bitrate/bits_per_pixel/file_bytes) | 0.616 (bitrate/bits_per_pixel/file_bytes) |
+| genvidbench | 1.000 (has_audio) | 0.662 (bitrate/bits_per_pixel) |
+| genvideo100k | 1.000 (has_audio) | 0.606 (duration) |
 
 ## 3. Cross-dataset AUC (metadata, raw): rows = trained on, columns = tested on
 

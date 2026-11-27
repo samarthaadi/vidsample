@@ -346,34 +346,34 @@
  "single": {
   "aigvdbench|raw": [
    1.0,
-   "width"
+   "aspect/height/width"
   ],
   "aigvdbench|norm": [
    0.65,
    "duration"
   ],
   "genbuster200k|raw": [
-   0.6504666666666666,
-   "file_bytes"
+   0.650467,
+   "bitrate/bits_per_pixel/file_bytes"
   ],
   "genbuster200k|norm": [
-   0.6157666666666667,
-   "file_bytes"
+   0.615767,
+   "bitrate/bits_per_pixel/file_bytes"
   ],
   "genvidbench|raw": [
-   0.9920024490108292,
-   "width"
+   1.0,
+   "has_audio"
   ],
   "genvidbench|norm": [
-   0.6619217081850534,
-   "bits_per_pixel"
+   0.661922,
+   "bitrate/bits_per_pixel"
   ],
   "genvideo100k|raw": [
-   0.9730639730639731,
-   "duration"
+   1.0,
+   "has_audio"
   ],
   "genvideo100k|norm": [
-   0.6060606060606061,
+   0.606061,
    "duration"
   ]
  },

@@ -44,12 +44,13 @@ normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
 1. **On raw clips, metadata alone is a near-perfect detector in 3 of 4 datasets.** The test AUC
    is 1.000 for AIGVDBench, GenVidBench and GenVideo-100K.
    - A single feature is enough. In AIGVDBench every real clip is 1920 px wide, and only 1 of the
-     548 fakes is (train-set AUC 1.000). In GenVidBench, width alone gives AUC 0.992. In GenVideo-100K, duration alone
-     gives 0.973: reals run ~10 s, fakes ~2 s.
-   - GenVidBench and GenVideo reals also carry audio, and their fakes don't.
+     548 fakes is (train-set AUC 1.000; 0.997 over all sampled AIGVDBench clips). In GenVidBench and
+     GenVideo-100K, "has audio" alone gives AUC 1.000: their reals carry audio and their fakes don't.
+     GenVideo-100K reals also run ~10 s against ~2 s for fakes.
    - The shortcut also carries across datasets. A metadata model trained on the other three
-     datasets scores AUC 0.82–1.00 on the held-out one, because real clips are high-resolution
-     and long almost everywhere.
+     datasets scores AUC 0.82–1.00 on the held-out one, but through different cues: reals are
+     wider in AIGVDBench and GenVidBench, narrower in GenVideo-100K (640 vs 1024 px), and on
+     format-matched GenBuster the transfer rests on file size ("larger = real" alone: 0.862).
 2. **GenBuster-200K is format-matched, but its real clips change bitrate between splits.**
    - Every clip is HEVC, 1024², 24 fps, 5.04 s.
    - In train, real clips are *smaller* than fakes (median 356 vs 542 KB). In test and benchmark
@@ -64,26 +65,27 @@ normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
      CRF tracks content complexity.
 4. **Normalization costs the CLIP baseline some AIGVDBench accuracy, so part of that score was
    format.**
-   - AIGVDBench drops from 0.880 to 0.780 (±0.05).
-   - The other datasets barely move: GenBuster 0.977 → 0.963, GenVidBench 0.997 → 0.983,
-     GenVideo 0.999 → 0.997.
-5. **The baseline holds up on unseen generators within the same dataset, but not on a new real
-   source or a new dataset.**
-   - On unseen generators it holds: AIGVDBench closed-source 0.82, GenBuster benchmark 0.985.
-   - It drops when the real source changes: GenVidBench Pair1 → Pair2 scores 0.71 (±0.07), and
-     MuseV and SVD fakes are caught only 20% of the time.
+   - AIGVDBench drops from 0.880 to 0.780 (±0.04/±0.05; the intervals do not overlap).
+   - The other test AUCs barely move: GenBuster 0.977 → 0.963, GenVidBench 0.997 → 0.983,
+     GenVideo 0.999 → 0.997. GenVidBench's Pair2 (ood) AUC drops more, 0.747 → 0.706.
+5. **The baseline mostly holds on unseen generators within a dataset, but not across datasets.**
+   - It holds on AIGVDBench's ClosedSource-folder generators (0.82) and GenBuster's benchmark
+     generators (0.985). That folder also holds open models such as Wan, Opensora and CausVid.
+   - It drops on GenVidBench Pair2 (0.71 ±0.07), and the cause is the unseen generators, not the
+     new real source. HD-VG reals vs Pair1 fakes still scores 0.945; Pair1 reals vs Pair2 fakes
+     scores 0.771. MuseV and SVD fakes are caught only 20% of the time.
    - Across datasets it is weak. Trained on the other three datasets (normalized clips), it
      scores AIGVDBench 0.61, GenBuster 0.75, GenVidBench 0.86, GenVideo 0.84. AIGVDBench is the
      hardest target from any source (0.49–0.60).
-   - The GenBuster and GenVideo in-dataset scores are near 1.0, which suggests their reals and
-     fakes also differ in content or style, not only in generation artifacts.
+   - In-dataset scores of 0.96–1.00 on GenBuster, GenVidBench and GenVideo-100K may partly
+     reflect content or style differences between their reals and fakes. This was not tested.
 
 ## Caveats
 
 - **Small samples.** Test AUCs have roughly ±0.02–0.07 at 95%. The per-generator accuracies use
   8–25 clips each (AIGVDBench: 8, about ±0.35), so don't rank generators by them.
 - **One weak baseline.** It is a frozen image model, linear probe, 4 frames and no temporal
-  modelling. Fine-tuned or video models will score higher. The shortcut findings don't depend
+  modelling. Fine-tuned or video models would be expected to score higher. The shortcut findings don't depend
   on the model.
 - **GenVidBench Pair2 reals are a narrow sample.** They are the first HD-VG clips under 40 MB in
   the stream, not a uniform sample.

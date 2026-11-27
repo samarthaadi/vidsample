@@ -65,14 +65,18 @@ def fit_eval(kind, X, ok, y, train, tests):
 
 
 def single_feature_auc(meta, y, mask):
-    best = []
-    for f in ["file_bytes", "bitrate", "bits_per_pixel", "width", "height", "fps", "duration"]:
+    """Best max(AUC, 1-AUC) over the numeric metadata features; ties are joined with '/'."""
+    scores = []
+    for f in NUMERIC:
         v = meta[f].fillna(0).to_numpy()[mask]
         if len(set(v)) < 2:
             continue
         a = roc_auc_score(y[mask], v)
-        best.append((max(a, 1 - a), f))
-    return max(best) if best else (0.5, "-")
+        scores.append((round(max(a, 1 - a), 6), f))
+    if not scores:
+        return (0.5, "-")
+    top = max(a for a, _ in scores)
+    return (top, "/".join(sorted(f for a, f in scores if a == top)))
 
 
 def main(exp, out_md):

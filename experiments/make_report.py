@@ -29,7 +29,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 sys.path.insert(0, ROOT)
-from common import NORM_SPEC, load_clips  # noqa: E402
+from common import NORM_SPEC, eval_sets, load_clips  # noqa: E402
+from evaluate import model as eval_model  # noqa: E402
+from sklearn.metrics import roc_auc_score  # noqa: E402
 from vidsample.datasets import DATASETS  # noqa: E402
 
 DS = ["aigvdbench", "genbuster200k", "genvidbench", "genvideo100k"]
@@ -119,6 +121,7 @@ def gather(exp):
     for ds in DS:
         mod = DATASETS[ds]
         kinds, n_real, n_fake, stream_gb, archives = {}, 0, 0, 0.0, mod.archives()
+        stubs = 0
         for a in archives:
             kinds[a.kind] = kinds.get(a.kind, 0) + 1
             if a.random_access:
@@ -127,12 +130,15 @@ def gather(exp):
                     if m:
                         n_real += m.label == "real"
                         n_fake += m.label == "fake"
+                        stubs += e.size < 1024
             else:
-                stream_gb += sum(a.sizes) / 2**30
-        listing[ds] = dict(kinds=kinds, real=n_real, fake=n_fake, stream_gb=stream_gb,
-                           total_gb=sum(sum(a.sizes) for a in archives) / 2**30)
-    commit = subprocess.run(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"],
-                            capture_output=True, text=True).stdout.strip()
+                stream_gb += sum(a.sizes) / 1e9
+        listing[ds] = dict(kinds=kinds, real=n_real, fake=n_fake, stream_gb=stream_gb, stubs=stubs,
+                           total_gb=sum(sum(a.sizes) for a in archives) / 1e9,
+                           archive_gb=[sum(a.sizes) / 1e9 for a in archives])
+    git = lambda *a: subprocess.run(["git", "-C", ROOT, *a], capture_output=True, text=True).stdout.strip()
+    dirty = git("status", "--porcelain", "--", ".", ":!experiments/results/report.pdf")
+    commit = git("rev-parse", "--short", "HEAD") + (" + uncommitted changes" if dirty else "")
     return dict(R=R, df=df, raw=raw, meta=meta, samp=samp, run_real=run_real, norm_mtimes=mt,
                 listing=listing, commit=commit)
 
@@ -174,13 +180,40 @@ def build(exp, out_pdf):
     meta_norm_3 = [within(d, "meta_norm") for d in ("aigvdbench", "genvidbench", "genvideo100k")]
     clipn_within = [within(d, "clip_norm") for d in DS]
     pg_n = [v["n"] for g in R["per_gen"].values() for k, v in g.items() if k.startswith("fake|")]
+    # GenVidBench Pair2 drop: refit the clip_norm model and split the ood set into its two changes
+    sets = {k: {n: m.to_numpy() for n, m in v.items()} for k, v in eval_sets(df).items()}
+    X = __import__("numpy").load(os.path.join(exp, "features", "norm_clip.npy"))
+    y = df["y"].to_numpy()
+    gs = sets["genvidbench"]
+    clf = eval_model("clip_norm").fit(X[gs["train"]], y[gs["train"]])
+    real, fake = y == 0, y == 1
+    def auc_on(m):
+        return roc_auc_score(y[m], clf.predict_proba(X[m])[:, 1])
+    gvb_newreal = auc_on((gs["ood"] & real) | (gs["test"] & fake))     # HD-VG reals vs Pair1 test fakes
+    gvb_newgen = auc_on((gs["test"] & real) | (gs["ood"] & fake))      # vript test reals vs Pair2 fakes
+    # metadata shortcut transfer cues
+    gbt = sets["genbuster200k"]["test"]
+    gb_size_auc = roc_auc_score(y[gbt], -raw["file_bytes"].to_numpy()[gbt])   # larger file = real
+    gv = raw[raw.dataset == "genvideo100k"]
+    gv_w = gv.groupby("label")["width"].median()
+    aig_m = (raw.dataset == "aigvdbench").to_numpy()
+    aig_w_auc = roc_auc_score(y[aig_m], -raw["width"].to_numpy()[aig_m])       # wider = real
+    gifs = raw[raw.member.str.lower().str.endswith(".gif")].groupby(["dataset", "generator"]).size()
+    jpeg = raw[raw.codec.isin(["mjpeg", "png"])]
+    aig_ood_gens = sorted(df[sets["aigvdbench"]["ood"] & fake]["generator"].unique())
+    gv_split = df[(df.dataset == "genvideo100k") & (df.label == "fake")].groupby("generator")["split"].first()
+    gv_train_prefixed = int((gv_split == "train").sum())
+    gvc = C["genvideo100k"]
+    gv_tr = gvc["train"]["real"] + gvc["train"]["fake"]
+    gv_te = gvc["test"]["real"] + gvc["test"]["fake"]
+    arch_gb = [g for d in DS for g in G["listing"][d]["archive_gb"]]
     cross_into_aig = [cross[f"clip_norm|{d}"].get("aigvdbench") for d in DS if d != "aigvdbench"]
 
     story = []
     story += [P("vidsample", TITLE),
               P("Remote sampling of AI-generated-video detection datasets — what was built, "
                 "and results of a shortcut test and a CPU baseline detector", H3),
-              P(f"Repository: <a href='{REPO_URL}' color='#1f4e79'>{REPO_URL}</a> (commit {G['commit']}) · "
+              P(f"Repository: <a href='{REPO_URL}' color='#1f4e79'>{REPO_URL}</a> (built from commit {G['commit']}) · "
                 f"generated {datetime.now(timezone.utc):%Y-%m-%d}", SMALL), Spacer(1, 6)]
 
     # ---------------- summary
@@ -191,14 +224,16 @@ def build(exp, out_pdf):
         "<b>without downloading their archives</b>. It reads archive directories over HTTP range requests and "
         "fetches only the chosen clips, writing them with a <font name='DV-M'>manifest.csv</font>. An optional "
         "<font name='DV-M'>--normalize</font> flag re-encodes every clip to one format. A fifth requested source, "
-        "VAE-rebuilt real clips, was dropped because no public release was found.",
+        "VAE-rebuilt real clips, was dropped because a search found no public release.",
         f"<b>Experiment data:</b> {n_total:,} sampled clips ({n_real:,} real, {n_fake:,} fake), "
-        f"each also re-encoded with <font name='DV-M'>--normalize</font>.",
+        f"each also re-encoded with the normalization behind <font name='DV-M'>--normalize</font> (capped at "
+        f"{NORM_SPEC['max_seconds']} s; section 2).",
         f"<b>Shortcut:</b> on raw clips, a classifier given only file metadata (size, bitrate, resolution, fps, "
         f"duration, codec, audio) reaches test AUC {f3(within('aigvdbench','meta_raw'))} on AIGVDBench, "
         f"{f3(within('genvidbench','meta_raw'))} on GenVidBench and {f3(within('genvideo100k','meta_raw'))} on "
         f"GenVideo-100K. Trained on three datasets, it scores {f3(min(meta_loo))}–{f3(max(meta_loo))} on the "
-        f"fourth. Normalizing lowers these three to {f3(min(meta_norm_3))}–{f3(max(meta_norm_3))}.",
+        f"fourth; the cue differs by dataset (section 3). Normalizing lowers the three to "
+        f"{f3(min(meta_norm_3))}–{f3(max(meta_norm_3))}.",
         f"<b>GenBuster-200K</b> is format-matched, but its real clips are smaller than its fakes in the train "
         f"split (median {gb[('train','real')]:.0f} vs {gb[('train','fake')]:.0f} KB) and larger in test "
         f"({gb[('test','real')]:.0f} vs {gb[('test','fake')]:.0f} KB). So a metadata model trained on its train "
@@ -206,14 +241,17 @@ def build(exp, out_pdf):
         f"<b>Baseline detector</b> (frozen CLIP ViT-B/32 + logistic regression, normalized clips): within-dataset "
         f"test AUC {f3(min(clipn_within))}–{f3(max(clipn_within))} "
         f"(lowest: {NAME[DS[clipn_within.index(min(clipn_within))]]}). But leave-one-dataset-out AUC is only "
-        f"{f3(min(clipn_loo))}–{f3(max(clipn_loo))}.",
+        f"{f3(min(clipn_loo))}–{f3(max(clipn_loo))}. GenVidBench's Pair2 drop ({f3(within('genvidbench','clip_norm','ood'))}) "
+        f"comes mainly from its unseen generators, not its new real-video source.",
     ])
 
     # ---------------- what was built
     story.append(P("1. What was built", H2))
     story.append(P("1.1 The tool", H3))
     story.append(P(
-        "The datasets are distributed as archives of tens to hundreds of GB. <font name='DV-M'>vidsample</font> "
+        f"The datasets total {min(G['listing'][d]['total_gb'] for d in DS):.0f}–"
+        f"{max(G['listing'][d]['total_gb'] for d in DS):.0f} GB each, in archives of {min(arch_gb):.1f} to "
+        f"{max(arch_gb):.0f} GB. <font name='DV-M'>vidsample</font> "
         "opens each remote archive as a seekable file backed by HTTP <i>Range</i> requests. It parses the "
         "archive's directory and caches the member list locally. It then plans a balanced sample (N clips per "
         "fake generator, the same total of real clips by default) and fetches only those byte ranges, in "
@@ -248,19 +286,26 @@ def build(exp, out_pdf):
            f"{L[d]['real']:,} real / {L[d]['fake']:,} fake" if L[d]["real"] + L[d]["fake"] else "none",
            f"{L[d]['stream_gb']:.1f} GB" if L[d]["stream_gb"] else "–", f"{L[d]['total_gb']:.0f} GB"]
           for d in DS],
-    ], [26, 37, 33, 34, 20, 18]))
+    ], [25, 40, 33, 35, 21, 18]))
     story.append(P(
         "Archive kinds: zip and rar (non-solid RAR5) and 7z (Copy coder) are random access; tar_stream and "
         "rar_in_7z_stream are read from the start. Counts are clips that pass the label/generator rules (video "
-        "files only).", SMALL))
+        "files only). Sizes are decimal GB (10<super>9</super> bytes).", SMALL))
 
     story.append(P("1.3 Data issues found while building it", H3))
-    gv_gif = int(((raw.dataset == "genvideo100k") & raw.member.str.lower().str.endswith(".gif")).sum())
     story += bullets([
         "GenVideo-100K contains 0-byte mp4 members (seen in DynamicCrafter, SEINE and ZeroScope). The sampler "
         "now always skips members under 1 KB, and <font name='DV-M'>--verify</font> drops undecodable clips.",
-        f"GenVideo-100K's I2VGEN_XL clips are GIFs ({gv_gif} of the sampled clips here); "
-        "<font name='DV-M'>--normalize</font> turns them into mp4.",
+        "Some GenVideo-100K clips are GIFs (sampled here: "
+        + ", ".join(f"{g} {n}" for (d, g), n in gifs.items()) + "); <font name='DV-M'>--normalize</font> turns "
+        "them into mp4."
+        + (" One sampled clip is a still image with a video extension ("
+           + ", ".join(f"{r.generator}: {r.member.split('/')[-1]}, codec {r.codec}" for r in jpeg.itertuples())
+           + "); it normalizes to a single-frame clip." if len(jpeg) else ""),
+        f"GenBuster-200K lists {G['listing']['genbuster200k']['stubs']} fake members under 1 KB (stub files); the "
+        "1 KB rule skips them.",
+        "GenVidBench's own check file (<font name='DV-M'>dataset_verify/video_check_results.txt</font>) lists 19 "
+        "Pair1 clips that cannot be opened (17 pika, 2 t2vz).",
         "GenVidBench's HD-VG real clips are one solid LZMA2 7z wrapping a single RAR5, so they can only be "
         "streamed. Individual clips can exceed 100 MB, so the experiments capped them at 40 MB "
         "(<font name='DV-M'>--max-clip-mb 40</font>).",
@@ -272,17 +317,18 @@ def build(exp, out_pdf):
     story.append(P("2. Experiment design", H2))
     story.append(P(
         f"Clips were sampled with <font name='DV-M'>experiments/sample.sh</font> (seed 0): {int(samp_clips):,} "
-        f"clips, {samp_mib/1024:.1f} GiB transferred in {samp_s/60:.1f} min of fetch time. Each clip was then "
-        f"re-encoded locally with the normalization used in the experiments: {NORM_SPEC['size']}×"
+        f"clips, {samp_mib*2**20/1e9:.1f} GB transferred in {samp_s/60:.1f} min of fetch time. Each clip was then "
+        f"re-encoded locally (<font name='DV-M'>experiments/normalize_local.py</font>, the same function as "
+        f"<font name='DV-M'>--normalize</font>): {NORM_SPEC['size']}×"
         f"{NORM_SPEC['size']}, {NORM_SPEC['fps']} fps, at most {NORM_SPEC['max_seconds']} s, CRF "
         f"{NORM_SPEC['crf']}, no audio, metadata stripped."))
     story.append(table([
         ["Dataset", "train", "test (seen generators)", "ood (unseen generators / sources)"],
         ["AIGVDBench", "official train split, 20 open-source generators", "official test split, same generators",
-         "closed-source generators (Sora, Kling, Gen3, …) + test reals"],
+         "the dataset's ClosedSource folder (" + ", ".join(aig_ood_gens) + ") + test reals"],
         ["GenBuster-200K", "train", "test", "benchmark (8 closed-source generators, own reals)"],
         ["GenVidBench", "70% of Pair1", "30% of Pair1", "Pair2 (other generators; HD-VG reals)"],
-        ["GenVideo-100K", "70%", "30%", "–"],
+        ["GenVideo-100K", f"~70% by path hash (realized {gv_tr})", f"~30% (realized {gv_te})", "–"],
     ], [28, 46, 46, 52]))
     story.append(Spacer(1, 4))
     story.append(table([
@@ -316,7 +362,9 @@ def build(exp, out_pdf):
            f"{single[f'{d}|raw'][0]:.3f} ({single[f'{d}|raw'][1]})",
            f"{single[f'{d}|norm'][0]:.3f} ({single[f'{d}|norm'][1]})"] for d in DS],
     ], [30, 30, 30, 41, 41]))
-    story.append(P("Single-feature AUC is measured on the training set, as max(AUC, 1 − AUC) of the raw feature value.", SMALL))
+    story.append(P("Single-feature AUC is measured on the training set, as max(AUC, 1 − AUC) of one numeric "
+                   "feature (file size, duration, fps, width, height, aspect, bitrate, bits per pixel, has-audio); "
+                   "ties are joined with /.", SMALL))
 
     story.append(P("Why: the formats differ (medians of the sampled raw clips)", H3))
     rows = [["Dataset", "label", "median size", "median duration", "median fps", "most common widths", "with audio"]]
@@ -330,10 +378,13 @@ def build(exp, out_pdf):
     story.append(table(rows, [28, 12, 22, 24, 18, 50, 18], zebra=False))
     story += bullets([
         f"AIGVDBench: {int((aig.label=='real').sum()) - aig_real_not_1920} of the {int((aig.label=='real').sum())} "
-        f"real clips are 1920 px wide, against {aig_fake_1920} of the {n_aig_fake} fakes. So width alone separates them.",
+        f"real clips are 1920 px wide, against {aig_fake_1920} of the {n_aig_fake} fakes. Width alone separates the "
+        f"training set perfectly and scores AUC {f3(aig_w_auc)} over all sampled AIGVDBench clips.",
         f"Trained on any three datasets, the metadata model scores {', '.join(f'{NAME[d]} {f3(x)}' for d, x in zip(DS, meta_loo))} "
-        "on the held-out one. The shortcut transfers because reals are high-resolution, long and often have audio "
-        "almost everywhere.",
+        "on the held-out one. The cue that transfers differs by dataset: reals are wider in AIGVDBench and "
+        f"GenVidBench, but narrower in GenVideo-100K (median width {gv_w['real']:.0f} vs {gv_w['fake']:.0f} px). "
+        "Audio marks the reals only in GenVidBench and GenVideo-100K. On format-matched GenBuster-200K the transfer "
+        f"rests on file size: 'larger file = real' alone scores AUC {f3(gb_size_auc)} on its test set.",
     ])
 
     story.append(P("GenBuster-200K: format-matched, but real-clip bitrate flips between splits", H3))
@@ -366,17 +417,23 @@ def build(exp, out_pdf):
         rows.append([NAME[d]] + cells)
     story.append(table(rows, [30, 35, 35, 35, 35]))
     story.append(Spacer(1, 3))
+    a_raw, a_norm = within("aigvdbench", "clip_raw"), within("aigvdbench", "clip_norm")
+    overlap = (a_raw - ci("aigvdbench", "clip_raw")) <= (a_norm + ci("aigvdbench", "clip_norm"))
     story.append(P(
-        f"Normalizing lowers AIGVDBench from {f3(within('aigvdbench','clip_raw'))} to "
-        f"{f3(within('aigvdbench','clip_norm'))} (intervals barely overlap). So part of the raw score came from "
-        f"format differences. The other datasets change by at most "
-        f"{max(abs(within(d,'clip_raw')-within(d,'clip_norm')) for d in DS if d!='aigvdbench'):.3f}. Within a "
-        f"dataset the baseline holds on unseen generators (AIGVDBench closed-source "
-        f"{f3(within('aigvdbench','clip_norm','ood'))}, GenBuster benchmark {f3(within('genbuster200k','clip_norm','ood'))}). "
-        f"But it drops when the real source changes: GenVidBench Pair1 → Pair2 scores "
-        f"{f3(within('genvidbench','clip_norm','ood'))}, catching MuseV fakes "
-        f"{100*gvb_ood['fake|musev']['acc']:.0f}% and SVD fakes {100*gvb_ood['fake|svd']['acc']:.0f}% of the time "
-        f"(n = {gvb_ood['fake|musev']['n']} each)."))
+        f"Normalizing lowers AIGVDBench from {f3(a_raw)} to {f3(a_norm)} (the intervals "
+        f"{'overlap' if overlap else 'do not overlap'}). So part of the raw score came from format differences. "
+        f"On the other datasets the test AUC changes by at most "
+        f"{max(abs(within(d,'clip_raw')-within(d,'clip_norm')) for d in DS if d!='aigvdbench'):.3f} "
+        f"(GenVidBench ood: {f3(within('genvidbench','clip_raw','ood'))} → {f3(within('genvidbench','clip_norm','ood'))})."))
+    story.append(P(
+        f"Within a dataset the baseline holds on AIGVDBench's ClosedSource-folder generators "
+        f"({f3(within('aigvdbench','clip_norm','ood'))}) and GenBuster's benchmark generators "
+        f"({f3(within('genbuster200k','clip_norm','ood'))}), but not on GenVidBench Pair2 "
+        f"({f3(within('genvidbench','clip_norm','ood'))}). Pair2 changes two things at once, so the same model was "
+        f"scored on each separately: HD-VG reals vs Pair1 test fakes (new real source, seen generators) "
+        f"{f3(gvb_newreal)}; Pair1 test reals vs Pair2 fakes (unseen generators) {f3(gvb_newgen)}. The drop comes "
+        f"mainly from the unseen generators. It catches MuseV fakes {100*gvb_ood['fake|musev']['acc']:.0f}% and SVD "
+        f"fakes {100*gvb_ood['fake|svd']['acc']:.0f}% of the time (n = {gvb_ood['fake|musev']['n']} each)."))
 
     for k, title in (("clip_norm", "CLIP, normalized clips"), ("clip_raw", "CLIP, raw clips"),
                      ("meta_raw", "metadata, raw clips")):
@@ -387,36 +444,38 @@ def build(exp, out_pdf):
         story.append(KeepTogether([P(f"Cross-dataset AUC: {title}", H3), table(rows, [40, 33, 33, 33, 33])]))
     story.append(P(
         f"Cross-dataset generalization is the weak point. AIGVDBench is the hardest target from every other "
-        f"dataset ({f3(min(cross_into_aig))}–{f3(max(cross_into_aig))}, normalized). Within-dataset scores near 1.0 "
-        "(GenBuster, GenVideo-100K) suggest their reals and fakes also differ in content or style, not only in "
-        "generation artifacts."))
+        f"dataset ({f3(min(cross_into_aig))}–{f3(max(cross_into_aig))}, normalized). The within-dataset scores of "
+        f"{f3(min(within(d,'clip_norm') for d in DS if d!='aigvdbench'))}–"
+        f"{f3(max(within(d,'clip_norm') for d in DS if d!='aigvdbench'))} on the other three datasets may partly "
+        "reflect content or style differences between their reals and fakes; this was not tested."))
 
     story.append(P("Per-generator accuracy (CLIP, normalized, threshold 0.5)", H3))
-    rows = [["Dataset / set", "fakes (accuracy, n)", "reals"]]
+    rows = [["Dataset / set", "fakes: accuracy (n)", "reals: accuracy (n)"]]
     for key, g in R["per_gen"].items():
         d, s = key.split("|")
-        fakes = ", ".join(f"{k.split('|')[1]} {v['acc']:.2f}" for k, v in g.items() if k.startswith("fake|"))
-        ns = sorted({v["n"] for k, v in g.items() if k.startswith("fake|")})
-        reals = ", ".join(f"{k.split('|')[1]} {v['acc']:.2f} (n={v['n']})" for k, v in g.items() if k.startswith("real|"))
-        rows.append([f"{NAME[d]} – {s}", fakes + f"  [n = {'/'.join(map(str, ns))} per generator]", reals])
+        fakes = ", ".join(f"{k.split('|')[1]} {v['acc']:.2f} ({v['n']})" for k, v in g.items() if k.startswith("fake|"))
+        reals = ", ".join(f"{k.split('|')[1]} {v['acc']:.2f} ({v['n']})" for k, v in g.items() if k.startswith("real|"))
+        rows.append([f"{NAME[d]} – {s}", fakes, reals])
     story.append(table(rows, [32, 110, 30]))
     half = lambda n: 1.96 * math.sqrt(0.25 / n)
     story.append(P(f"With {min(pg_n)}–{max(pg_n)} clips per generator these accuracies carry up to roughly "
                    f"±{half(max(pg_n)):.2f}–{half(min(pg_n)):.2f}, so they are not suitable for ranking generators.", SMALL))
 
-    cis = [ci(d, k, s) for d in DS for k in ("clip_raw", "clip_norm") for s in ("test", "ood")
-           if within(d, k, s) is not None]
+    cis = [ci(d, k, "test") for d in DS for k in ("clip_raw", "clip_norm")]
+    cis_ood = [ci(d, k, "ood") for d in DS for k in ("clip_raw", "clip_norm") if within(d, k, "ood") is not None]
 
     # ---------------- caveats + reproduce
     story.append(P("5. Caveats", H2))
     story += bullets([
-        f"Sample sizes are small. Test-set AUC intervals range from ±{min(cis):.3f} to ±{max(cis):.3f} (see the "
-        f"± values above), and per-generator numbers ({min(pg_n)}–{max(pg_n)} clips each) are noisy.",
+        f"Sample sizes are small. CLIP AUC intervals range from ±{min(cis):.3f} to ±{max(cis):.3f} on test sets and "
+        f"±{min(cis_ood):.3f} to ±{max(cis_ood):.3f} on ood sets, and per-generator numbers ({min(pg_n)}–{max(pg_n)} "
+        "clips each) are noisy.",
         "The baseline is deliberately weak: a frozen image model, a linear probe, 4 frames and no temporal "
-        "modelling. A fine-tuned or video model will score higher. The metadata findings do not depend on the "
-        "detector.",
+        "modelling. A fine-tuned or video model would be expected to score higher. The metadata findings do not "
+        "depend on the detector.",
         "GenVidBench Pair2 reals are the first HD-VG clips under 40 MB in the archive stream, not a uniform sample. "
-        "GenVideo-100K has no official split, so a hash-based 70/30 split is used.",
+        f"GenVideo-100K has no usable official split ({gv_train_prefixed} of its {len(gv_split)} fake generators "
+        "carry a train_ folder prefix; the reals do not), so a hash-based ~70/30 split is used.",
         "Run on one CPU-only machine. No hyperparameter tuning was done.",
     ])
     story.append(P("6. Reproduce", H2))
