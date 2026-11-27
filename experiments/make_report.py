@@ -22,7 +22,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import (KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer,
+from reportlab.platypus import (KeepTogether, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -351,7 +351,6 @@ def build(exp, out_pdf):
     ])
 
     # ---------------- results: shortcut
-    story.append(PageBreak())
     story.append(P("3. Results: metadata shortcut", H2))
     story.append(P("Test AUC of the metadata-only classifier (ood AUC in brackets where there is an ood set):"))
     story.append(table([

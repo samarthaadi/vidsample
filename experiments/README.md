@@ -34,10 +34,10 @@ normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
 
 | dataset | train | test (seen generators) | ood (unseen generators / sources) |
 |---|---|---|---|
-| AIGVDBench | official train split, 20 open-source gens | official test split, same gens | closed-source gens (Sora, Kling, Gen3, …) |
+| AIGVDBench | official train split, 20 open-source gens | official test split, same gens | the dataset's ClosedSource folder (Gen2, Gen3, Jimeng, Luma, Opensora, Sora, causvid_24fps, kling, pika, vidu, wan) + test reals |
 | GenBuster-200K | train | test | benchmark (8 closed-source gens) |
 | GenVidBench | 70% of Pair1 | 30% of Pair1 | Pair2 (other gens, HD-VG reals) |
-| GenVideo-100K | 70% | 30% | – |
+| GenVideo-100K | ~70% by path hash (realized 590 clips) | ~30% (realized 210) | – |
 
 ## Findings
 
@@ -71,8 +71,8 @@ normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
 5. **The baseline mostly holds on unseen generators within a dataset, but not across datasets.**
    - It holds on AIGVDBench's ClosedSource-folder generators (0.82) and GenBuster's benchmark
      generators (0.985). That folder also holds open models such as Wan, Opensora and CausVid.
-   - It drops on GenVidBench Pair2 (0.71 ±0.07), and the cause is the unseen generators, not the
-     new real source. HD-VG reals vs Pair1 fakes still scores 0.945; Pair1 reals vs Pair2 fakes
+   - It drops on GenVidBench Pair2 (0.71 ±0.07), mainly because of the unseen generators rather
+     than the new real source. HD-VG reals vs Pair1 fakes still scores 0.945; Pair1 reals vs Pair2 fakes
      scores 0.771. MuseV and SVD fakes are caught only 20% of the time.
    - Across datasets it is weak. Trained on the other three datasets (normalized clips), it
      scores AIGVDBench 0.61, GenBuster 0.75, GenVidBench 0.86, GenVideo 0.84. AIGVDBench is the
@@ -82,8 +82,9 @@ normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
 
 ## Caveats
 
-- **Small samples.** Test AUCs have roughly ±0.02–0.07 at 95%. The per-generator accuracies use
-  8–25 clips each (AIGVDBench: 8, about ±0.35), so don't rank generators by them.
+- **Small samples.** CLIP AUC intervals (95%) are ±0.004–0.048 on test sets and ±0.013–0.072 on
+  ood sets. The per-generator accuracies use 3–36 clips each (AIGVDBench: 8, about ±0.35), so
+  don't rank generators by them.
 - **One weak baseline.** It is a frozen image model, linear probe, 4 frames and no temporal
   modelling. Fine-tuned or video models would be expected to score higher. The shortcut findings don't depend
   on the model.
