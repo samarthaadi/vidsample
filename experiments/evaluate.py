@@ -122,6 +122,9 @@ def main(exp, out_md):
         json.dump({"within": {f"{a}|{b}": v for (a, b), v in res["within"].items()},
                    "cross": {f"{a}|{b}": v for (a, b), v in res["cross"].items()},
                    "single": {f"{a}|{b}": v for (a, b), v in res["single"].items()},
+                   "per_gen": {f"{a}|{b}": {f"{lab}|{gen}": {"acc": float(r["mean"]), "n": int(r["size"])}
+                                            for (lab, gen), r in g.iterrows()}
+                               for (a, b), g in res["per_gen"].items()},
                    "counts": res["counts"]}, fh, indent=1)
     print(md)
 

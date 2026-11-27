@@ -27,7 +27,7 @@ experiments/run.sh /path/to/exp_dir
 ```
 
 The four steps are `sample.sh`, `normalize_local.py`, `features.py` and `evaluate.py`. The run
-needs ~6.5 GB of disk and took 26 min on 4 CPUs, plus ~15 min of sampling and ~25 min of
+needs ~6.5 GB of disk and took 26 min on 4 CPUs, plus ~12 min of sampling and ~18 min of
 normalization. Normalization uses 512×512, 16 fps, 2 s, CRF 23.
 
 ## Sets
