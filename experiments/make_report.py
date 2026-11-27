@@ -286,7 +286,7 @@ def build(exp, out_pdf):
            f"{L[d]['real']:,} real / {L[d]['fake']:,} fake" if L[d]["real"] + L[d]["fake"] else "none",
            f"{L[d]['stream_gb']:.1f} GB" if L[d]["stream_gb"] else "–", f"{L[d]['total_gb']:.0f} GB"]
           for d in DS],
-    ], [28, 37, 32, 33, 24, 18]))
+    ], [28, 41, 28, 33, 24, 18]))
     story.append(P(
         "Archive kinds: zip and rar (non-solid RAR5) and 7z (Copy coder) are random access; tar_stream and "
         "rar_in_7z_stream are read from the start. Counts are clips that pass the label/generator rules (video "
