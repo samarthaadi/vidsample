@@ -1,0 +1,434 @@
+{
+ "within": {
+  "aigvdbench|meta_raw": {
+   "test": {
+    "auc": 1.0,
+    "bacc": 1.0,
+    "n": 408
+   },
+   "ood": {
+    "auc": 0.9886363636363636,
+    "bacc": 0.9886363636363636,
+    "n": 336
+   }
+  },
+  "aigvdbench|meta_norm": {
+   "test": {
+    "auc": 0.6653603830645161,
+    "bacc": 0.6314516129032258,
+    "n": 408
+   },
+   "ood": {
+    "auc": 0.5631644061583578,
+    "bacc": 0.5507697947214076,
+    "n": 336
+   }
+  },
+  "aigvdbench|clip_raw": {
+   "test": {
+    "auc": 0.8801159274193548,
+    "bacc": 0.8008064516129032,
+    "n": 408
+   },
+   "ood": {
+    "auc": 0.8619868035190615,
+    "bacc": 0.7826246334310851,
+    "n": 336
+   }
+  },
+  "aigvdbench|clip_norm": {
+   "test": {
+    "auc": 0.7797631048387096,
+    "bacc": 0.7042338709677419,
+    "n": 408
+   },
+   "ood": {
+    "auc": 0.8243676686217009,
+    "bacc": 0.7536656891495601,
+    "n": 336
+   }
+  },
+  "genbuster200k|meta_raw": {
+   "test": {
+    "auc": 0.20779999999999998,
+    "bacc": 0.275,
+    "n": 200
+   },
+   "ood": {
+    "auc": 0.1426736111111111,
+    "bacc": 0.21666666666666667,
+    "n": 240
+   }
+  },
+  "genbuster200k|meta_norm": {
+   "test": {
+    "auc": 0.21105000000000002,
+    "bacc": 0.265,
+    "n": 200
+   },
+   "ood": {
+    "auc": 0.22204861111111115,
+    "bacc": 0.2875,
+    "n": 240
+   }
+  },
+  "genbuster200k|clip_raw": {
+   "test": {
+    "auc": 0.9768000000000001,
+    "bacc": 0.9299999999999999,
+    "n": 200
+   },
+   "ood": {
+    "auc": 0.9891666666666666,
+    "bacc": 0.9375,
+    "n": 240
+   }
+  },
+  "genbuster200k|clip_norm": {
+   "test": {
+    "auc": 0.9634,
+    "bacc": 0.8999999999999999,
+    "n": 200
+   },
+   "ood": {
+    "auc": 0.9850694444444446,
+    "bacc": 0.9291666666666667,
+    "n": 240
+   }
+  },
+  "genvidbench|meta_raw": {
+   "test": {
+    "auc": 1.0,
+    "bacc": 1.0,
+    "n": 240
+   },
+   "ood": {
+    "auc": 1.0,
+    "bacc": 1.0,
+    "n": 200
+   }
+  },
+  "genvidbench|meta_norm": {
+   "test": {
+    "auc": 0.7527258837419266,
+    "bacc": 0.6999097159524967,
+    "n": 240
+   },
+   "ood": {
+    "auc": 0.7278999999999999,
+    "bacc": 0.73,
+    "n": 200
+   }
+  },
+  "genvidbench|clip_raw": {
+   "test": {
+    "auc": 0.9968747829710396,
+    "bacc": 0.9709354816306688,
+    "n": 240
+   },
+   "ood": {
+    "auc": 0.7471,
+    "bacc": 0.6950000000000001,
+    "n": 200
+   }
+  },
+  "genvidbench|clip_norm": {
+   "test": {
+    "auc": 0.9826376831724426,
+    "bacc": 0.9249253420376415,
+    "n": 240
+   },
+   "ood": {
+    "auc": 0.7062,
+    "bacc": 0.665,
+    "n": 200
+   }
+  },
+  "genvideo100k|meta_raw": {
+   "test": {
+    "auc": 1.0,
+    "bacc": 1.0,
+    "n": 210
+   }
+  },
+  "genvideo100k|meta_norm": {
+   "test": {
+    "auc": 0.636013065964976,
+    "bacc": 0.6174575809817621,
+    "n": 210
+   }
+  },
+  "genvideo100k|clip_raw": {
+   "test": {
+    "auc": 0.9992741130568914,
+    "bacc": 0.980945467743399,
+    "n": 210
+   }
+  },
+  "genvideo100k|clip_norm": {
+   "test": {
+    "auc": 0.9970964522275656,
+    "bacc": 0.9762725705471373,
+    "n": 210
+   }
+  }
+ },
+ "cross": {
+  "meta_raw|aigvdbench": {
+   "aigvdbench": 1.0,
+   "genbuster200k": 0.5,
+   "genvidbench": 0.5,
+   "genvideo100k": 0.5
+  },
+  "meta_raw|genbuster200k": {
+   "aigvdbench": 0.07563004032258065,
+   "genbuster200k": 0.20779999999999998,
+   "genvidbench": 0.16771998055420514,
+   "genvideo100k": 0.4734597586425914
+  },
+  "meta_raw|genvidbench": {
+   "aigvdbench": 0.5,
+   "genbuster200k": 0.5,
+   "genvidbench": 1.0,
+   "genvideo100k": 1.0
+  },
+  "meta_raw|genvideo100k": {
+   "aigvdbench": 0.5,
+   "genbuster200k": 0.5,
+   "genvidbench": 1.0,
+   "genvideo100k": 1.0
+  },
+  "meta_raw|all": {
+   "aigvdbench": 0.9999999999999999,
+   "genbuster200k": 0.24785,
+   "genvidbench": 1.0,
+   "genvideo100k": 1.0
+  },
+  "meta_raw|all-but-aigvdbench": {
+   "aigvdbench": 0.8159274193548387
+  },
+  "meta_raw|all-but-genbuster200k": {
+   "genbuster200k": 0.86285
+  },
+  "meta_raw|all-but-genvidbench": {
+   "genvidbench": 0.9968053337037295
+  },
+  "meta_raw|all-but-genvideo100k": {
+   "genvideo100k": 0.8734234642954359
+  },
+  "meta_norm|aigvdbench": {
+   "aigvdbench": 0.6653603830645161,
+   "genbuster200k": 0.44415000000000004,
+   "genvidbench": 0.611778595735815,
+   "genvideo100k": 0.5287632701206787
+  },
+  "meta_norm|genbuster200k": {
+   "aigvdbench": 0.5261340725806452,
+   "genbuster200k": 0.21105000000000002,
+   "genvidbench": 0.5797277588721439,
+   "genvideo100k": 0.6005807095544868
+  },
+  "meta_norm|genvidbench": {
+   "aigvdbench": 0.6788810483870968,
+   "genbuster200k": 0.383,
+   "genvidbench": 0.7527258837419266,
+   "genvideo100k": 0.6600580709554487
+  },
+  "meta_norm|genvideo100k": {
+   "aigvdbench": 0.6520287298387096,
+   "genbuster200k": 0.41835,
+   "genvidbench": 0.6904646155983054,
+   "genvideo100k": 0.636013065964976
+  },
+  "meta_norm|all": {
+   "aigvdbench": 0.6673765120967742,
+   "genbuster200k": 0.3311,
+   "genvidbench": 0.7056740051392458,
+   "genvideo100k": 0.6611469013701115
+  },
+  "meta_norm|all-but-aigvdbench": {
+   "aigvdbench": 0.6617565524193549
+  },
+  "meta_norm|all-but-genbuster200k": {
+   "genbuster200k": 0.37015
+  },
+  "meta_norm|all-but-genvidbench": {
+   "genvidbench": 0.6940759774984374
+  },
+  "meta_norm|all-but-genvideo100k": {
+   "genvideo100k": 0.6529806732601398
+  },
+  "clip_raw|aigvdbench": {
+   "aigvdbench": 0.8801159274193548,
+   "genbuster200k": 0.6890000000000001,
+   "genvidbench": 0.8112368914507951,
+   "genvideo100k": 0.4486888667090101
+  },
+  "clip_raw|genbuster200k": {
+   "aigvdbench": 0.5859879032258065,
+   "genbuster200k": 0.9768000000000001,
+   "genvidbench": 0.8638794360719495,
+   "genvideo100k": 0.8229743217493876
+  },
+  "clip_raw|genvidbench": {
+   "aigvdbench": 0.6174647177419355,
+   "genbuster200k": 0.9173,
+   "genvidbench": 0.9968747829710396,
+   "genvideo100k": 0.9706015788041013
+  },
+  "clip_raw|genvideo100k": {
+   "aigvdbench": 0.45040322580645165,
+   "genbuster200k": 0.8288,
+   "genvidbench": 0.9254114869088131,
+   "genvideo100k": 0.9992741130568914
+  },
+  "clip_raw|all": {
+   "aigvdbench": 0.8032762096774193,
+   "genbuster200k": 0.854,
+   "genvidbench": 0.9779151329953469,
+   "genvideo100k": 0.9649759549950095
+  },
+  "clip_raw|all-but-aigvdbench": {
+   "aigvdbench": 0.6207283266129032
+  },
+  "clip_raw|all-but-genbuster200k": {
+   "genbuster200k": 0.7914
+  },
+  "clip_raw|all-but-genvidbench": {
+   "genvidbench": 0.9533300923675255
+  },
+  "clip_raw|all-but-genvideo100k": {
+   "genvideo100k": 0.8004718265130206
+  },
+  "clip_norm|aigvdbench": {
+   "aigvdbench": 0.7797631048387096,
+   "genbuster200k": 0.6596,
+   "genvidbench": 0.7174109313146747,
+   "genvideo100k": 0.46198167135468654
+  },
+  "clip_norm|genbuster200k": {
+   "aigvdbench": 0.5764364919354839,
+   "genbuster200k": 0.9634,
+   "genvidbench": 0.8279047156052505,
+   "genvideo100k": 0.8233372652209417
+  },
+  "clip_norm|genvidbench": {
+   "aigvdbench": 0.602671370967742,
+   "genbuster200k": 0.8568,
+   "genvidbench": 0.9826376831724426,
+   "genvideo100k": 0.9514563106796117
+  },
+  "clip_norm|genvideo100k": {
+   "aigvdbench": 0.4915070564516129,
+   "genbuster200k": 0.7962,
+   "genvidbench": 0.8964511424404472,
+   "genvideo100k": 0.9970964522275656
+  },
+  "clip_norm|all": {
+   "aigvdbench": 0.7206653225806452,
+   "genbuster200k": 0.8369,
+   "genvidbench": 0.9434682964094729,
+   "genvideo100k": 0.9619816713546866
+  },
+  "clip_norm|all-but-aigvdbench": {
+   "aigvdbench": 0.6055821572580645
+  },
+  "clip_norm|all-but-genbuster200k": {
+   "genbuster200k": 0.753
+  },
+  "clip_norm|all-but-genvidbench": {
+   "genvidbench": 0.8590874366275436
+  },
+  "clip_norm|all-but-genvideo100k": {
+   "genvideo100k": 0.8388530986298883
+  }
+ },
+ "single": {
+  "aigvdbench|raw": [
+   1.0,
+   "width"
+  ],
+  "aigvdbench|norm": [
+   0.65,
+   "duration"
+  ],
+  "genbuster200k|raw": [
+   0.6504666666666666,
+   "file_bytes"
+  ],
+  "genbuster200k|norm": [
+   0.6157666666666667,
+   "file_bytes"
+  ],
+  "genvidbench|raw": [
+   0.9920024490108292,
+   "width"
+  ],
+  "genvidbench|norm": [
+   0.6619217081850534,
+   "bits_per_pixel"
+  ],
+  "genvideo100k|raw": [
+   0.9730639730639731,
+   "duration"
+  ],
+  "genvideo100k|norm": [
+   0.6060606060606061,
+   "duration"
+  ]
+ },
+ "counts": {
+  "aigvdbench": {
+   "train": {
+    "real": 300,
+    "fake": 300
+   },
+   "test": {
+    "real": 248,
+    "fake": 160
+   },
+   "ood": {
+    "real": 248,
+    "fake": 88
+   }
+  },
+  "genbuster200k": {
+   "train": {
+    "real": 300,
+    "fake": 300
+   },
+   "test": {
+    "real": 100,
+    "fake": 100
+   },
+   "ood": {
+    "real": 120,
+    "fake": 120
+   }
+  },
+  "genvidbench": {
+   "train": {
+    "real": 279,
+    "fake": 281
+   },
+   "test": {
+    "real": 121,
+    "fake": 119
+   },
+   "ood": {
+    "real": 100,
+    "fake": 100
+   }
+  },
+  "genvideo100k": {
+   "train": {
+    "real": 293,
+    "fake": 297
+   },
+   "test": {
+    "real": 107,
+    "fake": 103
+   }
+  }
+ }
+}
